@@ -1,9 +1,7 @@
 package com.example.prueba_android;
 
-import android.content.Context;
-import android.content.Intent;
+import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteStatement;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -47,27 +45,30 @@ public class AgregarActivity extends AppCompatActivity {
                 return;
             }
 
-            SQLiteDatabase db = openOrCreateDatabase("BD_ANIMALES", Context.MODE_PRIVATE, null);
-            db.execSQL("CREATE TABLE IF NOT EXISTS ANIMALES (" +
-                    "ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "NOMBRE VARCHAR, " +
-                    "DESCRIPCION VARCHAR, " +
-                    "TIPO VARCHAR, " +
-                    "EDAD INTEGER)");
+            // Actualizado a versión 2 para forzar la creación correcta de la tabla
+            AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "BD_ANIMALES", null, 2);
+            SQLiteDatabase db = admin.getWritableDatabase();
 
-            String sql = "INSERT INTO ANIMALES (NOMBRE, DESCRIPCION, TIPO, EDAD) VALUES (?, ?, ?, ?)";
-            SQLiteStatement statement = db.compileStatement(sql);
-            statement.bindString(1, nombre);
-            statement.bindString(2, descripcion);
-            statement.bindString(3, tipo);
-            statement.bindLong(4, Integer.parseInt(edadStr));
-            statement.execute();
-            db.close();
+            try {
+                ContentValues registro = new ContentValues();
+                registro.put("NOMBRE", nombre);
+                registro.put("DESCRIPCION", descripcion);
+                registro.put("TIPO", tipo);
+                registro.put("EDAD", Integer.parseInt(edadStr));
 
-            Toast.makeText(this, "Animal agregado correctamente", Toast.LENGTH_SHORT).show();
+                long result = db.insert("ANIMALES", null, registro);
 
-            Intent intent = new Intent(AgregarActivity.this, MainActivity.class);
-            startActivity(intent);
+                if (result == -1) {
+                    Toast.makeText(this, "Error al guardar el registro (Tabla no encontrada o error de datos)", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Animal agregado correctamente", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+            } catch (Exception e) {
+                Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            } finally {
+                db.close();
+            }
         });
     }
 }
